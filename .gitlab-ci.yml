@@ -5,7 +5,7 @@ make:
   tags:
     - comp2300
   before_script:
-    - apk add binutils gcc libc-dev make musl-legacy-error findutils coreutils
+    - apk add binutils gcc libc-dev make
   script:
     - make -C anubis
   artifacts:
@@ -151,3 +151,23 @@ test_26:
   extends: .tests
   variables:
     TEST: 26
+
+test_27:
+  extends: .tests
+  variables:
+    TEST: 27
+
+test_28:
+  extends: .tests
+  variables:
+    TEST: 28
+
+test_29:
+  extends: .tests
+  variables:
+    TEST: 29
+
+test_30:
+  extends: .tests
+  variables:
+    TEST: 30
