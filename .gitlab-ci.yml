@@ -1,0 +1,153 @@
+image: alpine:3.18
+
+make:
+  stage: build
+  tags:
+    - comp2300
+  before_script:
+    - apk add binutils gcc libc-dev make musl-legacy-error findutils coreutils
+  script:
+    - make -C anubis
+  artifacts:
+    paths:
+      - anubis/anubis
+
+.tests:
+  stage: test
+  tags:
+    - comp2300
+  before_script:
+    - apk add bash
+  script:
+    - cd anubis
+    - ../tester/run-tests.sh -t $TEST
+    
+test_1:
+  extends: .tests
+  variables:
+    TEST: 1
+
+test_2:
+  extends: .tests
+  variables:
+    TEST: 2
+
+test_3:
+  extends: .tests
+  variables:
+    TEST: 3
+
+test_4:
+  extends: .tests
+  variables:
+    TEST: 4
+
+test_5:
+  extends: .tests
+  variables:
+    TEST: 5
+
+test_6:
+  extends: .tests
+  variables:
+    TEST: 6
+
+test_7:
+  extends: .tests
+  variables:
+    TEST: 7
+
+test_8:
+  extends: .tests
+  variables:
+    TEST: 8
+
+test_9:
+  extends: .tests
+  variables:
+    TEST: 9
+
+test_10:
+  extends: .tests
+  variables:
+    TEST: 10
+
+test_11:
+  extends: .tests
+  variables:
+    TEST: 11
+
+test_12:
+  extends: .tests
+  variables:
+    TEST: 12
+
+test_13:
+  extends: .tests
+  variables:
+    TEST: 13
+
+test_14:
+  extends: .tests
+  variables:
+    TEST: 14
+
+test_15:
+  extends: .tests
+  variables:
+    TEST: 15
+
+test_16:
+  extends: .tests
+  variables:
+    TEST: 16
+
+test_17:
+  extends: .tests
+  variables:
+    TEST: 17
+
+test_18:
+  extends: .tests
+  variables:
+    TEST: 18
+
+test_19:
+  extends: .tests
+  variables:
+    TEST: 19
+
+test_20:
+  extends: .tests
+  variables:
+    TEST: 20
+
+test_21:
+  extends: .tests
+  variables:
+    TEST: 21
+
+test_22:
+  extends: .tests
+  variables:
+    TEST: 22
+
+test_23:
+  extends: .tests
+  variables:
+    TEST: 23
+
+test_24:
+  extends: .tests
+  variables:
+    TEST: 24
+
+test_25:
+  extends: .tests
+  variables:
+    TEST: 25
+
+test_26:
+  extends: .tests
+  variables:
+    TEST: 26
