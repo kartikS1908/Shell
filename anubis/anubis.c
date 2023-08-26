@@ -96,12 +96,12 @@ void process_cmd(char **tokens,int *n,char* path[])
     int pid = fork();
     if(pid<0)
     {
-        
-        ERROR(0,"An error has occurred\n");
+        ERROR(1,"An error has occurred\n");
+        exit(1);
     }
     if(pid==0)
     { 
-        // int fd1 ;
+        // int fd1;
         // if ((fd1 = creat("output.txt" , 0644)) < 0) {
         //     perror("Couldn't open the output file");
         //     exit(0);
@@ -141,13 +141,21 @@ void process_cmd(char **tokens,int *n,char* path[])
             {
                 char* myargs[MAX_INPUT_SIZE]; 
                 i = 1;
+                int count_white = 0;
                 myargs[0] = command;
                 while(tokens[i]!=NULL)
                 {
-                    myargs[i] = tokens[i];
+                    if(!strcmp(tokens[i],""))
+                    {
+                        count_white++;
+                        i++;
+                        continue;
+                    }
+                    myargs[i-count_white] = tokens[i];
                     i++;
                 }
-                myargs[i] = NULL;
+
+                myargs[i-count_white] = NULL;
                 execv(myargs[0],myargs);
                 exit(0);
             }
@@ -254,7 +262,7 @@ int main(int argc, char *argv[])
         FILE* fd = fopen(argv[1],"r");
         if(fd==NULL)
         {
-            ERROR(0,"An error has occured\n");
+            ERROR(1,"An error has occured\n");
             exit(1);
         }
         while(1) 
@@ -265,6 +273,7 @@ int main(int argc, char *argv[])
         int n;
         char* del = " ";
         char** tokens = parse(input,&n,del);
+
         if(!strcmp(tokens[0],"exit\n") || !strcmp(tokens[0],"cd") || !strcmp(tokens[0],"cd\n") || !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n")) process_command_self(tokens,path);
         else {
             process_cmd(tokens,&n,path);
@@ -274,7 +283,7 @@ int main(int argc, char *argv[])
         }
     }
     else{
-        ERROR(0,"An error has occured\n");
+        ERROR(1,"An error has occured\n");
         exit(1);
     }
 
