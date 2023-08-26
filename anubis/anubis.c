@@ -96,10 +96,20 @@ void process_cmd(char **tokens,int *n,char* path[])
     int pid = fork();
     if(pid<0)
     {
+        
         ERROR(0,"An error has occurred\n");
     }
     if(pid==0)
-    {
+    { 
+        // int fd1 ;
+        // if ((fd1 = creat("output.txt" , 0644)) < 0) {
+        //     perror("Couldn't open the output file");
+        //     exit(0);
+        // }           
+
+        // dup2(fd1, STDOUT_FILENO); // 1 here can be replaced by STDOUT_FILENO
+        // close(fd1);
+
         int i = 0;
         while(tokens[(*n)-1][i]!='\n') i++;
         tokens[(*n)-1][i] = NULL;
@@ -231,7 +241,10 @@ int main(int argc, char *argv[])
            !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n") || !strcmp(tokens[0],"exit")) 
            process_command_self(tokens,path);
         else {
-            process_cmd(tokens,&n,path);}
+            if(strstr(input,">")==NULL)
+            process_cmd(tokens,&n,path);
+            
+            }
         input[0] = '\0';
         if(feof(stdin)) break; 
     }
@@ -239,6 +252,11 @@ int main(int argc, char *argv[])
     {
         
         FILE* fd = fopen(argv[1],"r");
+        if(fd==NULL)
+        {
+            ERROR(0,"An error has occured\n");
+            exit(1);
+        }
         while(1) 
         {
         if(getline(&input, &n, fd)==-1) exit(0);
@@ -255,6 +273,12 @@ int main(int argc, char *argv[])
         if(feof(stdin)) break;   
         }
     }
+    else{
+        ERROR(0,"An error has occured\n");
+        exit(1);
+    }
 
     return 0;
 }
+
+
