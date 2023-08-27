@@ -27,7 +27,7 @@
 
 const int MAX_PATH_COUNT = 100;
 const int MAX_INPUT_SIZE = 100;
-
+const int MAX_BUFF_SIZE = 1024;
 char ** parse(char *line, int *n, char * delim)
 {
     int sz=32;
@@ -91,7 +91,7 @@ void ERROR(int errnum, const char * format, ... )
 
 // TODO: implement your shell!
 
-void process_cmd(char **tokens,int *n,char* path[])
+void process_cmd(char **tokens,int *n,char* path[],char* filename)
 {
     int pid = fork();
     if(pid<0)
@@ -101,17 +101,23 @@ void process_cmd(char **tokens,int *n,char* path[])
     }
     if(pid==0)
     { 
-        // int fd1;
-        // if ((fd1 = creat("output.txt" , 0644)) < 0) {
-        //     perror("Couldn't open the output file");
-        //     exit(0);
-        // }           
+        if(filename!=NULL)
+        {
+        int fp = 0;
+        while(filename[fp]!='\n') fp++;
+        filename[fp] = NULL;
+        int fd1;
+        if ((fd1 = creat(filename, 0644)) < 0) {
+            perror("Couldn't open the output file");
+            exit(0);
+        }           
+        dup2(fd1, STDOUT_FILENO); // 1 here can be replaced by STDOUT_FILENO
+        close(fd1);
+        }
 
-        // dup2(fd1, STDOUT_FILENO); // 1 here can be replaced by STDOUT_FILENO
-        // close(fd1);
 
         int i = 0;
-        while(tokens[(*n)-1][i]!='\n') i++;
+        while(tokens[(*n)-1][i]!='\n' && tokens[(*n)-1][i]!='\0') i++;
         tokens[(*n)-1][i] = NULL;
 
         int j = 0;
@@ -244,14 +250,41 @@ int main(int argc, char *argv[])
         if(!strcmp("exit\n",input)) exit(0);
         int n;
         char* del = " ";
+        char* input_copy[MAX_BUFF_SIZE];
+        strcpy(input_copy,input);
         char** tokens = parse(input,&n,del);
         if(!strcmp(tokens[0],"exit\n") || !strcmp(tokens[0],"cd") || !strcmp(tokens[0],"cd\n") || 
            !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n") || !strcmp(tokens[0],"exit")) 
            process_command_self(tokens,path);
         else {
-            if(strstr(input,">")==NULL)
-            process_cmd(tokens,&n,path);
-            
+            if(strstr(input_copy,">"))
+            {
+                int n_redirect;
+                char** tokens_redirect = parse(input_copy,&n_redirect,">");
+                if(n_redirect!=2 || !strcmp(tokens_redirect[1],"\n") || strstr(tokens_redirect[1],">"))
+                {
+                    ERROR(0,"An error has occured\n");
+                    continue;
+                }
+
+                else{
+                    int file_count = 0;
+                    char** file_check = parse(tokens_redirect[1],&file_count," ");
+                    if(file_count!=1)
+                    {
+                        ERROR(0,"An error has occured\n");
+                        continue;
+                    }
+                    n_redirect = 0;
+                    char** toks = parse(tokens_redirect[0],&n_redirect," ");
+                    process_cmd(toks,&n_redirect,path,file_check[0]);
+                    free_tokens(toks,n_redirect);
+                    continue;
+                }
+
+            }
+            process_cmd(tokens,&n,path,NULL);
+            free_tokens(tokens,n);
             }
         input[0] = '\0';
         if(feof(stdin)) break; 
@@ -272,15 +305,44 @@ int main(int argc, char *argv[])
         if(!strcmp("exit\n",input)) exit(0);
         int n;
         char* del = " ";
+        char* input_copy[MAX_BUFF_SIZE];
+        strcpy(input_copy,input);
         char** tokens = parse(input,&n,del);
 
         if(!strcmp(tokens[0],"exit\n") || !strcmp(tokens[0],"cd") || !strcmp(tokens[0],"cd\n") || !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n")) process_command_self(tokens,path);
         else {
-            process_cmd(tokens,&n,path);
-            free_tokens(tokens,n);}
+            if(strstr(input_copy,">"))
+            {
+                int n_redirect;
+                char** tokens_redirect = parse(input_copy,&n_redirect,">");
+                if(n_redirect!=2 || !strcmp(tokens_redirect[1],"\n") || strstr(tokens_redirect[1],">"))
+                {
+                    ERROR(0,"An error has occured\n");
+                    continue;
+                }
+
+                else{
+                    int file_count = 0;
+                    char** file_check = parse(tokens_redirect[1],&file_count," ");
+                    if(file_count!=1)
+                    {
+                        ERROR(0,"An error has occured\n");
+                        continue;
+                    }
+                    n_redirect = 0;
+                    char** toks = parse(tokens_redirect[0],&n_redirect," ");
+                    process_cmd(toks,&n_redirect,path,file_check[0]);
+                    free_tokens(toks,n_redirect);
+                    continue;
+                }
+            }
+            process_cmd(tokens,&n,path,NULL);
+            free_tokens(tokens,n);
+
+            }
         input[0] = '\0';
         if(feof(stdin)) break;   
-        }
+         }
     }
     else{
         ERROR(1,"An error has occured\n");
@@ -289,5 +351,6 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
 
 
