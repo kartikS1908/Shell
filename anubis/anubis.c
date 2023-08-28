@@ -98,7 +98,7 @@ void parse_command_parallel(char* input, char* path[])
         int n;
         char *del = "&";
         char** tokens = parse(input,&n,del);
-        for(int i =0; i< n; i++)
+        for(int i =n-1; i>=0; i--)
         {
         if(fork() == 0)     
         {
@@ -106,16 +106,13 @@ void parse_command_parallel(char* input, char* path[])
             exit(EXIT_FAILURE);
         }
     }
-    /* Wait for children */
-    int corpse;
+    // Wait for children.
     int status;
-    while ((corpse = wait(&status)) > 0)
+    while (wait(NULL) > 0)
     {
         continue;
     }
-
     return;
-
     }  
     else 
     {
