@@ -117,14 +117,6 @@ void parse_command_parallel(char* input, char* path[])
     return;
 
     }  
-
-    // int corpse;
-    // int status;
-    // while ((corpse = wait(&status)) > 0)
-    // {
-    //     continue;
-    // }
-    }
     else 
     {
         parse_command(input,path);
