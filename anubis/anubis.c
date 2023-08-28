@@ -91,47 +91,86 @@ void ERROR(int errnum, const char * format, ... )
 
 // TODO: implement your shell!
 
-void parse_command(char *input,char* path)
+void parse_command_parallel(char* input, char* path[])
+{
+    if(strstr(input,"&")!=NULL)
+    {
+        int n;
+        char *del = "&";
+        char** tokens = parse(input,&n,del);
+        for(int i =0; i< n; i++)
+        {
+        if(fork() == 0)     
+        {
+            parse_command(tokens[i],path);   
+            exit(EXIT_FAILURE);
+        }
+    }
+    /* Wait for children */
+    int corpse;
+    int status;
+    while ((corpse = wait(&status)) > 0)
+    {
+        continue;
+    }
+
+    return;
+
+    }  
+
+    // int corpse;
+    // int status;
+    // while ((corpse = wait(&status)) > 0)
+    // {
+    //     continue;
+    // }
+    }
+    else 
+    {
+        parse_command(input,path);
+    }
+}
+
+void parse_command(char *input,char* path[])
 {
     int n;
-        char* del = " ";
-        char* input_copy[MAX_BUFF_SIZE];
-        strcpy(input_copy,input);
-        char** tokens = parse(input,&n,del);
-        if(!strcmp(tokens[0],"exit\n") || !strcmp(tokens[0],"cd") || !strcmp(tokens[0],"cd\n") || 
-           !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n") || !strcmp(tokens[0],"exit")) 
-           process_command_self(tokens,path);
-        else {
-            if(strstr(input_copy,">"))
+    char* del = " ";
+    char* input_copy[MAX_BUFF_SIZE];
+    strcpy(input_copy,input);
+    char** tokens = parse(input,&n,del);
+    if(!strcmp(tokens[0],"exit\n") || !strcmp(tokens[0],"cd") || !strcmp(tokens[0],"cd\n") || 
+        !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n") || !strcmp(tokens[0],"exit")) 
+        process_command_self(tokens,path);
+    else {
+        if(strstr(input_copy,">"))
+        {
+            int n_redirect;
+            char** tokens_redirect = parse(input_copy,&n_redirect,">");
+            if(n_redirect!=2 || !strcmp(tokens_redirect[1],"\n") || strstr(tokens_redirect[1],">"))
             {
-                int n_redirect;
-                char** tokens_redirect = parse(input_copy,&n_redirect,">");
-                if(n_redirect!=2 || !strcmp(tokens_redirect[1],"\n") || strstr(tokens_redirect[1],">"))
+                ERROR(0,"An error has occured\n");
+                return;
+            }
+
+            else{
+                int file_count = 0;
+                char** file_check = parse(tokens_redirect[1],&file_count," ");
+                if(file_count!=1)
                 {
                     ERROR(0,"An error has occured\n");
                     return;
                 }
-
-                else{
-                    int file_count = 0;
-                    char** file_check = parse(tokens_redirect[1],&file_count," ");
-                    if(file_count!=1)
-                    {
-                        ERROR(0,"An error has occured\n");
-                        return;
-                    }
-                    n_redirect = 0;
-                    char** toks = parse(tokens_redirect[0],&n_redirect," ");
-                    process_cmd(toks,&n_redirect,path,file_check[0]);
-                    free_tokens(toks,n_redirect);
-                    return;
-                }
-
+                n_redirect = 0;
+                char** toks = parse(tokens_redirect[0],&n_redirect," ");
+                process_cmd(toks,&n_redirect,path,file_check[0]);
+                free_tokens(toks,n_redirect);
+                return;
             }
-            process_cmd(tokens,&n,path,NULL);
-            free_tokens(tokens,n);
-            }
- 
+
+        }
+        process_cmd(tokens,&n,path,NULL);
+        free_tokens(tokens,n);
+        }
 }
 void process_cmd(char **tokens,int *n,char* path[],char* filename)
 {
@@ -289,7 +328,7 @@ int main(int argc, char *argv[])
         printf("\n");
         printf("anubis> "); 
         if(!getline(&input, &n, stdin)) break;
-        parse_command(input,path);
+        parse_command_parallel(input,path);
         input[0] = '\0';
         if(feof(stdin)) break;
     }
@@ -305,7 +344,7 @@ int main(int argc, char *argv[])
         while(1) 
         {
         if(getline(&input, &n, fd)==-1) exit(0);
-        parse_command(input,path);
+        parse_command_parallel(input,path);
         input[0] = '\0';
         if(feof(stdin)) break;
     }
