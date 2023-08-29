@@ -25,8 +25,8 @@
 //       Make sure you free them if they are no longer in use, using the free_token 
 //       function (see below). 
 
-const int MAX_PATH_COUNT = 100;
-const int MAX_INPUT_SIZE = 100;
+const int MAX_PATH_COUNT = 1024;
+const int MAX_INPUT_SIZE = 1024;
 const int MAX_BUFF_SIZE = 1024;
 char ** parse(char *line, int *n, char * delim)
 {
@@ -95,24 +95,21 @@ void parse_command_parallel(char* input, char* path[])
 {
     if(strstr(input,"&")!=NULL)
     {
-        int n;
+        int n,status,pid;
         char *del = "&";
         char** tokens = parse(input,&n,del);
-        for(int i =n-1; i>=0; i--)
+        // printf("%i",n);
+
+        for(int i = 0; i<n; i++)
         {
         if(fork() == 0)     
         {
             parse_command(tokens[i],path);   
-            exit(EXIT_FAILURE);
+            exit(0);
         }
-    }
-    // Wait for children.
-    int status;
-    while (wait(NULL) > 0)
-    {
-        continue;
-    }
-    return;
+        }
+    while (wait(NULL) > 0);
+        return;
     }  
     else 
     {
@@ -125,7 +122,9 @@ void parse_command(char *input,char* path[])
     int n;
     char* del = " ";
     char* input_copy[MAX_BUFF_SIZE];
+    char* input_copy_pipes[MAX_BUFF_SIZE];
     strcpy(input_copy,input);
+    strcpy(input_copy_pipes,input);
     char** tokens = parse(input,&n,del);
     if(!strcmp(tokens[0],"exit\n") || !strcmp(tokens[0],"cd") || !strcmp(tokens[0],"cd\n") || 
         !strcmp(tokens[0],"path")|| !strcmp(tokens[0],"path\n") || !strcmp(tokens[0],"exit")) 
@@ -151,16 +150,26 @@ void parse_command(char *input,char* path[])
                 }
                 n_redirect = 0;
                 char** toks = parse(tokens_redirect[0],&n_redirect," ");
-                process_cmd(toks,&n_redirect,path,file_check[0]);
+                // parse_cmd_pipes(toks,&n_redirect,path,file_check[0],input_copy_pipes);
+                if(strstr(input_copy_pipes,"|")==NULL) process_cmd(toks,&n_redirect,path,file_check[0]);
+                else{
+                    printf("%s","pipe here!!");
+                }
                 free_tokens(toks,n_redirect);
                 return;
             }
 
         }
-        process_cmd(tokens,&n,path,NULL);
+        // parse_cmd_pipes(tokens,&n,path,NULL,input_copy_pipes);
+        if(strstr(input_copy_pipes,"|")==NULL) process_cmd(tokens,&n,path,NULL);
+        else{
+            printf("%s","pipe here!!");
+                }
         free_tokens(tokens,n);
-        }
+    }
 }
+
+
 void process_cmd(char **tokens,int *n,char* path[],char* filename)
 {
     int pid = fork();
