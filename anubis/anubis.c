@@ -153,7 +153,7 @@ void parse_command(char *input,char* path[])
                 // parse_cmd_pipes(toks,&n_redirect,path,file_check[0],input_copy_pipes);
                 if(strstr(input_copy_pipes,"|")==NULL) process_cmd(toks,&n_redirect,path,file_check[0]);
                 else{
-                    printf("%s","pipe here!!");
+                    parse_pipes(input_copy_pipes,path);
                 }
                 free_tokens(toks,n_redirect);
                 return;
@@ -163,12 +163,45 @@ void parse_command(char *input,char* path[])
         // parse_cmd_pipes(tokens,&n,path,NULL,input_copy_pipes);
         if(strstr(input_copy_pipes,"|")==NULL) process_cmd(tokens,&n,path,NULL);
         else{
-            printf("%s","pipe here!!");
+            parse_pipes(input_copy_pipes,path);
                 }
         free_tokens(tokens,n);
     }
 }
 
+void parse_pipes(char* input,char* path[])
+{
+    int pid;
+    int fd_in = dup(STDIN_FILENO);
+    int fd_out = dup(STDOUT_FILENO); 
+    int n_pipes;
+    char* del = "|";
+    char** tok_pipes = parse(input,&n_pipes,del);
+    
+    for(int i = 0; i<n_pipes-1; i++)
+    {
+        int pd[2];
+        pipe(pd);
+        pid=fork();
+        if(pid==0) {
+            dup2(pd[1], STDOUT_FILENO); 
+            parse_command(tok_pipes[i],path);
+            exit(0);
+        }
+        dup2(pd[0], STDIN_FILENO);
+        close(pd[0]);
+        close(pd[1]);
+    }
+ 
+    parse_command(tok_pipes[n_pipes-1],path);
+    free_tokens(tok_pipes,path);
+    int w1; 
+    int r1;
+    r1=waitpid(pid, &w1,0);
+    dup2(fd_in, STDIN_FILENO);
+    dup2(fd_out, STDOUT_FILENO);
+    return;
+}
 
 void process_cmd(char **tokens,int *n,char* path[],char* filename)
 {
