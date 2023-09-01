@@ -431,15 +431,16 @@ int main(int argc, char *argv[])
                 break;
             // Send to upper most layer of abstraction. More details in the report about how different levels interleave. 
             parse_command_parallel(input, path);
-            // set inout back to NULL.
+            // set input back to NULL.
             input = NULL;
+            // Break at EOF.
             if (feof(stdin))
                 break;
         }
     // Batch mode. 
     else if (argc == 2)
     {
-
+        // open file.  (in read mode).
         FILE *fd = fopen(argv[1], "r");
         if (fd == NULL)
         {
@@ -452,6 +453,7 @@ int main(int argc, char *argv[])
                 exit(0);
             parse_command_parallel(input, path);
             input[0] = '\0';
+            // break at end of file.
             if (feof(stdin))
                 break;
         }
