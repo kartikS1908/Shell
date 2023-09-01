@@ -29,6 +29,8 @@ const int MAX_PATH_COUNT = 1024;
 const int MAX_INPUT_SIZE = 1024;
 const int MAX_BUFF_SIZE = 1024;
 
+// FIx implicit declaration warning for circular function.
+void parse_command(char* input, char** path);
 /*
 Parser function. Source myshell.c from COMP3300 lab-03. 
 */
@@ -113,7 +115,7 @@ void process_cmd(char **tokens, int *n, char *path[], char *filename)
             // Deal with whitespace and new line character at the end of file name. 
             while (filename[fp] != '\n' && filename[fp] != ' ')
                 fp++;
-            filename[fp] = NULL;
+            filename[fp] = '\0';
 
             // Create file and redirect the STDOUT to the file.
             int fd;
@@ -129,7 +131,7 @@ void process_cmd(char **tokens, int *n, char *path[], char *filename)
         int i = 0;
         while (tokens[(*n) - 1][i] != '\n' && tokens[(*n) - 1][i] != '\0')
             i++;
-        tokens[(*n) - 1][i] = NULL;
+        tokens[(*n) - 1][i] = '\0';
 
         int j = 0;
         // Executable found in the current working directory. 
@@ -195,10 +197,112 @@ void process_cmd(char **tokens, int *n, char *path[], char *filename)
     }
 }
 
+// Intrenal commands. 
+void process_command_self(char **tokens, char *path[])
+{
+    // Exit gracefully.
+    if (!strcmp("exit\n", tokens[0]))
+        exit(0);
+    // Incorrect use of exit.
+    if (!strcmp("exit", tokens[0]) && (tokens[1] != NULL && strcmp("\n", tokens[1])))
+    {
+        ERROR(0, "An error has occured\n");
+    }
+    // cd with no args.
+    else if (!strcmp("cd\n", tokens[0]))
+    {
+        ERROR(0, "An error has occurred\n");
+    }
+    // correct use of cd. Including dealing with whitespaces. 
+    else if (!strcmp("cd", tokens[0]))
+    {
+        int c = 0;
+        while (tokens[1][c] != '\n')
+        {
+            c++;
+        }
+        tokens[1][c] = '\0';
+        if (chdir(tokens[1]) == -1)
+        {
+            ERROR(0, "An error has occurred\n");
+        }
+    }
+    // Set path to null.
+    else if (!strcmp(tokens[0], "path\n"))
+    {
+        int i = 0;
+        while (path[i] != NULL)
+        {
+            path[i] = NULL;
+            i++;
+        }
+    }
+    // Path to be set. Overwrites the current path. 
+    else if (!strcmp(tokens[0], "path"))
+    {
+        int i = 0;
+        while (path[i] != NULL)
+        {
+            path[i] = NULL;
+            i++;
+        }
+        i = 1;
+        while (tokens[i] != NULL)
+        {
+            path[i - 1] = tokens[i];
+            i++;
+        }
+        int j = 0;
+        while (path[i - 2][j] != '\n')
+        {
+            j++;
+        }
+        path[i - 2][j] = '\0';
+    }
+    return;
+}
+// Deal with pipes. 
+void parse_pipes(char *input, char **path)
+{
+    // Save the initial file descriptors. 
+    int f_in = dup(STDIN_FILENO);
+    int f_out = dup(STDOUT_FILENO);
+    // Tokenize the various commands to be piped. 
+    char *del = "|";
+    int n_pipes;
+    char **tok_pipes = parse(input, &n_pipes, del);
+    int i;
+    // Fork processes for each pipe. remember the previous out. redirect in of next towards it. 
+    for (i = 0; i < n_pipes - 1; i++)
+    {
+        // Pipe array.
+        int pd[2];
+        pipe(pd);
+        int pid;
+        if ((pid = fork()) == 0)
+        {
+            // 
+            dup2(pd[1], STDOUT_FILENO);
+            parse_command(tok_pipes[i], path);
+            exit(0);
+        }
+        else
+        {
+            dup2(pd[0], STDIN_FILENO);
+            close(pd[1]);
+        }
+    }
+    // Last pipe. 
+    parse_command(tok_pipes[n_pipes - 1], path);
+    // Restore everything. Otherwise you will get a segfault the next time you try to get input. 
+    dup2(f_in, STDIN_FILENO);
+    dup2(f_out, STDOUT_FILENO);
+    return;
+}
+
 // Function to carry out the main input parsing. CHeck for internal commands, piping, redirection and parallel commands. 
 void parse_command(char *input, char **path)
 {
-
     int n;
     char *del = " ";
     // Keep copies of the input. Multiple tokenizations necessary for checking for pipes and redirection. Parse function modifies the input string.  
@@ -230,7 +334,6 @@ void parse_command(char *input, char **path)
             {
                 int file_count = 0;
                 char **file_check = parse(tokens_redirect[1], &file_count, " ");
-                int i = 0;
                 if (file_count == 2)
                 {
                     if (!strcmp(file_check[1], "\n"))
@@ -274,51 +377,13 @@ void parse_command(char *input, char **path)
         free_tokens(tokens, n);
     }
 }
-// Deal with pipes. 
-void parse_pipes(char *input, char *path[])
-{
-    // Save the initial file descriptors. 
-    int f_in = dup(STDIN_FILENO);
-    int f_out = dup(STDOUT_FILENO);
-    // Tokenize the various commands to be piped. 
-    char *del = "|";
-    int n_pipes;
-    char **tok_pipes = parse(input, &n_pipes, del);
-    int i;
-    // Fork processes for each pipe. remember the previous out. redirect in of next towards it. 
-    for (i = 0; i < n_pipes - 1; i++)
-    {
-        // Pipe array.
-        int pd[2];
-        pipe(pd);
-        int pid;
-        if ((pid = fork()) == 0)
-        {
-            // 
-            dup2(pd[1], STDOUT_FILENO);
-            parse_command(tok_pipes[i], path);
-            exit(0);
-        }
-        else
-        {
-            dup2(pd[0], STDIN_FILENO);
-            close(pd[1]);
-        }
-    }
-    // Last pipe. 
-    parse_command(tok_pipes[n_pipes - 1], path);
-    // Restore everything. Otherwise you will get a segfault the next time you try to get input. 
-    dup2(f_in, STDIN_FILENO);
-    dup2(f_out, STDOUT_FILENO);
-    return;
-}
 // Deal with parallel commands. Some weird behaviour noticed. Outlined in report. 
 void parse_command_parallel(char *input, char *path[])
 {
     //  Parallel commands found. 
     if (strstr(input, "&") != NULL)
     {
-        int n, status, pid;
+        int n;
         char *del = "&";
         char **tokens = parse(input, &n, del);
         // Spawn a new process for each of the parallel commands. Wait for all of them in the parent. 
@@ -341,70 +406,6 @@ void parse_command_parallel(char *input, char *path[])
     }
 }
 
-// Intrenal commands. 
-void process_command_self(char **tokens, char *path[])
-{
-    // Exit gracefully.
-    if (!strcmp("exit\n", tokens[0]))
-        exit(0);
-    // Incorrect use of exit.
-    if (!strcmp("exit", tokens[0]) && (tokens[1] != NULL && strcmp("\n", tokens[1])))
-    {
-        ERROR(0, "An error has occured\n");
-    }
-    // cd with no args.
-    else if (!strcmp("cd\n", tokens[0]))
-    {
-        ERROR(0, "An error has occurred\n");
-    }
-    // correct use of cd. Including dealing with whitespaces. 
-    else if (!strcmp("cd", tokens[0]))
-    {
-        int c = 0;
-        while (tokens[1][c] != '\n')
-        {
-            c++;
-        }
-        tokens[1][c] = NULL;
-        if (chdir(tokens[1]) == -1)
-        {
-            ERROR(0, "An error has occurred\n");
-        }
-    }
-    // Set path to null.
-    else if (!strcmp(tokens[0], "path\n"))
-    {
-        int i = 0;
-        while (path[i] != NULL)
-        {
-            path[i] = NULL;
-            i++;
-        }
-    }
-    // Path to be set. Overwrites the current path. 
-    else if (!strcmp(tokens[0], "path"))
-    {
-        int i = 0;
-        while (path[i] != NULL)
-        {
-            path[i] = NULL;
-            i++;
-        }
-        i = 1;
-        while (tokens[i] != NULL)
-        {
-            path[i - 1] = tokens[i];
-            i++;
-        }
-        int j = 0;
-        while (path[i - 2][j] != '\n')
-        {
-            j++;
-        }
-        path[i - 2][j] = NULL;
-    }
-    return;
-}
 
 
 int main(int argc, char *argv[])
