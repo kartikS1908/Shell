@@ -260,6 +260,29 @@ void parse_command(char *input, char **path)
 
 void parse_pipes(char *input, char *path[])
 {
+    int f_in = dup(STDIN_FILENO);
+    int f_out = dup(STDOUT_FILENO);
+    char* del = "|";
+    int n_pipes;
+    char** tok_pipes = parse(input,&n_pipes,del);
+    int i;
+    for( i=0; i< n_pipes-1; i++)
+    {
+        int pd[2];
+        pipe(pd);
+        int pid;
+        if ((pid = fork())==0) {
+            dup2(pd[1], STDOUT_FILENO); 
+            parse_command(tok_pipes[i],path);
+            exit(0);
+        }
+
+        dup2(pd[0], STDIN_FILENO);
+        close(pd[1]);
+    }
+    parse_command(tok_pipes[n_pipes-1],path);
+    dup2(f_in,STDIN_FILENO);
+    dup2(f_out,STDOUT_FILENO);
     return;
 }
 
@@ -270,7 +293,6 @@ void parse_command_parallel(char *input, char *path[])
         int n, status, pid;
         char *del = "&";
         char **tokens = parse(input, &n, del);
-        // printf("%i",n);
 
         for (int i = 0; i < n; i++)
         {
@@ -279,10 +301,12 @@ void parse_command_parallel(char *input, char *path[])
                 parse_command(tokens[i], path);
                 exit(0);
             }
+            
         }
         while (wait(NULL) > 0)
             ;
         return;
+
     }
     else
     {
