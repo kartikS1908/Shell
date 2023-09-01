@@ -276,9 +276,9 @@ void parse_pipes(char *input, char *path[])
             parse_command(tok_pipes[i],path);
             exit(0);
         }
-
-        dup2(pd[0], STDIN_FILENO);
-        close(pd[1]);
+        else
+        {dup2(pd[0], STDIN_FILENO);
+        close(pd[1]);}
     }
     parse_command(tok_pipes[n_pipes-1],path);
     dup2(f_in,STDIN_FILENO);
