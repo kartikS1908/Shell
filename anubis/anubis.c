@@ -395,6 +395,7 @@ void parse_command_parallel(char *input, char *path[])
                 exit(0);
             }
         }
+        // wait for all chhildren
         while (wait(NULL) > 0)
             ;
         return;
