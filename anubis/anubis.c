@@ -137,15 +137,7 @@ void process_cmd(char **tokens, int *n, char *path[], char *filename)
         // Executable found in the current working directory. 
         if (!access(tokens[0], X_OK))
         {
-            char *myargs[MAX_INPUT_SIZE];
-            i = 0;
-            while (tokens[i] != NULL)
-            {
-                myargs[i] = tokens[i];
-                i++;
-            }
-            myargs[i] = NULL;
-            execv(myargs[0], myargs);
+            execv(tokens[0], tokens);
             exit(0);
         }
         else
@@ -215,7 +207,12 @@ void process_command_self(char **tokens, char *path[])
     }
     // correct use of cd. Including dealing with whitespaces. 
     else if (!strcmp("cd", tokens[0]))
+
     {
+        if(tokens[2]) {
+            ERROR(0, "An error has occurred\n");
+            return; 
+        }
         int c = 0;
         while (tokens[1][c] != '\n')
         {
@@ -225,6 +222,7 @@ void process_command_self(char **tokens, char *path[])
         if (chdir(tokens[1]) == -1)
         {
             ERROR(0, "An error has occurred\n");
+            return;
         }
     }
     // Set path to null.
@@ -281,7 +279,7 @@ void parse_pipes(char *input, char **path)
         int pid;
         if ((pid = fork()) == 0)
         {
-            // 
+
             dup2(pd[1], STDOUT_FILENO);
             parse_command(tok_pipes[i], path);
             exit(0);
