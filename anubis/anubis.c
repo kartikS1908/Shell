@@ -21,9 +21,6 @@
 //   with the last element being the NULL pointer.
 // - Or, NULL if the parsing failed for some reasons.
 //
-// Note: this function allocates memory dynamicall using malloc/realloc.
-//       Make sure you free them if they are no longer in use, using the free_token
-//       function (see below).
 
 const int MAX_PATH_COUNT = 1024;
 const int MAX_INPUT_SIZE = 1024;
@@ -238,11 +235,16 @@ void process_command_self(char **tokens, char *path[])
     // Path to be set. Overwrites the current path. 
     else if (!strcmp(tokens[0], "path"))
     {
+
         int i = 0;
         while (path[i] != NULL)
         {
             path[i] = NULL;
             i++;
+        }
+        if(!strcmp(tokens[1], "\n"))
+        {
+            return;
         }
         i = 1;
         while (tokens[i] != NULL)
@@ -451,7 +453,7 @@ int main(int argc, char *argv[])
             if (getline(&input, &n, fd) == -1)
                 exit(0);
             parse_command_parallel(input, path);
-            input[0] = '\0';
+            input = NULL;
             // break at end of file.
             if (feof(stdin))
                 break;
