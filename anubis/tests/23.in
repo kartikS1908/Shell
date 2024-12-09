@@ -1,3 +1,0 @@
-path /bin /usr/bin
-ls tests/p2a-test | head -n 2
-exit 
